@@ -1,0 +1,341 @@
+REM /**
+REM  * ExportImportCosts.bbj
+REM  * @author Len
+REM  *
+REM  */
+
+use java.util.HashMap
+use ::DTSpreadsheet.bbj::DTSpreadsheet
+
+class public ExportImportCosts 
+    field private BBjSysGui         gui!
+    field private BBjWindow         win!
+    
+    field private BBjRadioButton    export!
+    field private BBjRadioButton    import!
+    field private BBjFileChooser    importFile!
+    field private BBjButton         start!
+    field private BBjProgressBar    progress!
+    
+    field private BBjString         result$
+    field private BBjString         errmsg$
+    
+  method public ExportImportCosts()
+    declare BBjVector         ctrls!
+    declare HashMap           ctrlmap!
+    declare BBjControl        ctrl!
+    declare BBjVector         fileTypes!
+    
+    fileTypes! = new BBjVector()
+    fileTypes!.add("*.xls")
+    fileTypes!.add("*.xlsx")
+    
+    #gui! = BBjAPI().openSysGui("X0")
+    resourceId% = 101
+    handle% = #gui!.resOpen("ExportImportCosts.arc")
+    #win! = #gui!.createTopLevelWindow(handle%, resourceId%)
+    #win!.setCallback(#win!.ON_CLOSE, #this!, "close")
+    ctrls! = #win!.getAllControls()
+    ctrlmap! = new HashMap()
+    for i = 0 to ctrls!.size() - 1
+      ctrl! = cast(BBjControl, ctrls!.get(i))
+      ctrlmap!.put(ctrl!.getName(), i)
+    next i
+    
+    #export!     = cast(BBjRadioButton, ctrls!.get(num(ctrlmap!.get("Export"))))
+    #import!     = cast(BBjRadioButton, ctrls!.get(num(ctrlmap!.get("Import"))))
+    #importFile! = cast(BBjFileChooser, ctrls!.get(num(ctrlmap!.get("ImportFile"))))
+
+    #export!.setCallback(#export!.ON_CHECK_ON, #this!, "export")
+    #import!.setCallback(#import!.ON_CHECK_ON, #this!, "import")
+
+    #importFile!.setEnabled(0)
+    #importFile!.setCurrentDirectory(CLIENTENV("HOMEPATH") + "\Downloads")
+    #importFile!.setText("ItemCosts")
+    #importFile!.addFileFilter("Spreadsheet Files", fileTypes!)
+    #importFile!.setAcceptAllFileFilterUsed(0)
+    #importFile!.setNewFolderEnabled(BBjAPI.FALSE)
+    #importFile!.setCallback(#importFile!.ON_FILECHOOSER_CANCEL,  #this!, "cancel")
+    #importFile!.setCallback(#importFile!.ON_FILECHOOSER_APPROVE, #this!, "approve")
+    
+    #start! = cast(BBjButton,ctrls!.get(num(ctrlmap!.get("start"))))
+    #start!.setCallback(#gui!.ON_BUTTON_PUSH, #this!, "start")
+
+    #progress! = cast(BBjProgressBar, ctrls!.get(num(ctrlmap!.get("progress"))))
+    
+    #result$ = "Failed"
+    
+    process_events
+
+  methodend
+  
+  method protected void cancel(BBjFileChooserCancelEvent e!)
+    #start!.setEnabled(0)
+  methodend
+
+  method protected void approve(BBjFileChooserApproveEvent e!)
+    #start!.setEnabled(1)
+  methodend
+  
+  method protected void start(BBjButtonPushEvent e!)
+    if #export!.isSelected() then
+      msg$ = #doExport()
+    else
+      msg$ = #doImport()
+    fi
+    #result$ = "Completed"
+    a = msgbox(msg$, 0, "Item Cost Export/Import")
+    #quit()
+  methodend
+
+  method private BBjString doExport()
+    declare DTSpreadsheet ss!
+    declare BBjVector     cells!
+    
+    #progress!.setIndeterminate(0)
+    #progress!.setText("Exporting")
+
+    ss! = new DTSpreadsheet("Sheet 1")
+
+    call "CDS095", err=*next, ivm02, stbl("SMSDIR") + "RP/ivm02", "NNY", ivm02$, ivm02k$
+    if ivm02 = 0 then
+      #errmsg$ = "Unable to open Item file ivm02"
+      #quit()
+    fi
+    
+    call "CDS187", ivm02, s187$
+    #progress!.setMaximum(s187.recsused)
+        
+    cells! = new BBjVector()
+    cells!.add("ITEM_ID")
+    cells!.add("UNIT_COST")
+    ss!.addRow(cells!)
+    
+    repeat
+      readrecord (ivm02, end=*break)ivm02$
+      if ivm02.FIRM_ID$ = "01" and ivm02.WAREHOUSE_ID$ = "OH" then
+        cells!.clear()
+        cells!.add(cvs(ivm02.item_id$, 2))
+        cells!.add(str(ivm02.unit_cost))
+        ss!.addRow(cells!)
+      fi
+      done = done + 1
+      #progress!.setValue(done)
+    until 0
+
+    mkdir "/tmp", err=*next
+    serverFile$ = "/tmp/ItemCosts.xlsx" 
+    ss!.save(serverFile$)
+    
+    declare BBjClientFileSystem fs!
+    declare BBjClientFile       clientFile!
+    fs! = BBjAPI().getThinClient().getClientFileSystem()
+    outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ItemCosts.xlsx"
+    clientFile! = fs!.getClientFile(outfile$)
+    if clientFile!.exists() then clientFile!.delete()
+    clientFile!.createNewFile()
+    clientFile!.copyToClient(serverFile$)
+    erase serverFile$, err=*next
+      
+    methodret "ItemCosts.xlsx file created in your Downloads folder."
+  methodend
+
+  method private BBjString doImport()
+    declare BBjClientFileSystem fs!
+    declare BBjClientFile       clientFile!
+
+    #importFile!.setEnabled(0)
+    #progress!.setText("Checking File")
+    #progress!.setIndeterminate(BBjAPI.TRUE)
+
+    fs! = BBjAPI().getThinClient().getClientFileSystem()
+
+    clientFile! = fs!.getClientFile(#importFile!.getSelectedFile())
+    cf$ = clientFile!.getName()
+    dot = pos("." = cf$, -1)
+    ext$ = cf$(dot + 1)
+    
+    y$ = "RP"
+    call "CDS011", y$, "Import Costs", msg$
+
+    serverFile$ = clientFile!.copyFromClient(); rem   Copy to BBj Server (not necessarily SMS server when using Eclipse)
+    
+    declare DTSpreadsheet ss!
+    ss! = new DTSpreadsheet()
+    ss!.open(serverFile$)
+    if ! ss!.getErrMsg().isEmpty() then
+      #errmsg$ = ss!.getErrMsg()
+      #quit()
+    fi
+    rows = ss!.selectSheet(0)
+    if rows = 0 then
+      #errmsg$ = "No rows found in spreadsheet file"
+      #quit()
+    fi
+    if rows = 1 then
+      #errmsg$ = "Only one column header row found in spreadsheet file"
+      #quit()
+    fi
+    declare BBjVector headrow!
+    headrow! = ss!.getRowAsVector()
+    
+    itemfile$ = stbl("SMSDIR") + "RP/ivm02"
+    call "CDS095", err=*next, ivm02, itemfile$, "NNY", ivm02$, ivm02k$
+    if ivm02 = 0 then
+      #errmsg$ = "Unable to open Item file " + itemfile$
+      #quit()
+    fi
+    ivm02.firm_id$ = "01"
+    ivm02.warehouse_id$ = "OH"
+
+    whsfile$ = stbl("SMSDIR") + "RP/ivm07"
+    call "CDS095", err=*next, ivm07, whsfile$, "NNY", ivm07$, ivm07k$
+    if ivm07 = 0 then
+      #errmsg$ = "Unable to open Item file " + whsfile$
+      #quit()
+    fi
+    ivm02.firm_id$ = "01"
+    ivm02.warehouse_id$ = "OH"
+    
+    fldErrors = 0
+    declare BBjVector row!
+    goodrows = 0
+    for row = 2 to rows
+      row! = ss!.getRowAsVector()
+      if row!.size() <> 2 then 
+        fldErrors = fldErrors + 1
+        if fldErrors <= 5 then rows$ = rows$ + ", " + str(row)
+        continue
+      fi
+      ivm02.item_id$ = row!.get(0).toString()
+      nof = 1; readrecord (ivm02, knum=0, key=kgen(ivm02$, ivm02k$, 0), dom=*next); nof = 0
+      if nof then
+        nofcount = nofcount + 1
+        if nofcount <= 5 nofrows$ = nofrows$ + ", " + str(row)
+        continue
+      fi
+      
+      cost = -1
+      cost = num(row!.get(1).toString(), err=*next)
+      if cost < 0 then
+        costcount = costcount + 1
+        if costcount <= 5 costrows$ = costrows$ + ", " + str(row)
+        continue
+      fi
+      
+      goodrows = goodrows + 1
+    next row
+    
+    if fldErrors then
+      if fldErrors = 1 then
+        txt$ = "Row " + rows$(2) + " does not have 2 columns."
+      else
+        txt$ = "There are " + str(fldErrors) + " rows that do not have 2 columns," + $0a$ + "including rows" + rows$(2)
+      fi
+      #errmsg$ = txt$ + $0a$ + "Col A = Item#, Col B = Cost"
+      #quit()
+    fi
+
+    if nofcount then
+      if nofcount = 1 then
+        #errmsg$ = "Item# in row " + nofrows$(2) + " is not on file."
+      else
+        #errmsg$ = "There are " + str(nofcount) + " rows where Item# is not on file," + $0a$ + "including rows" + nofrows$(2)
+      fi
+      #quit()
+    fi
+    
+    if costcount then
+      if costcount = 1 then
+        #errmsg$ = "Item# in row " + rows$(2) + " has invalid cost."
+      else
+        #errmsg$ = "There are " + str(costcount) + " rows where cost is invalid," + $0a$ + "including rows" + costrows$(2)
+      fi
+      #quit()
+    fi
+
+    #result$ = str(goodrows) + " Items Found in File"
+    if goodrows = 0 then
+      #errmsg$ = "No Items Found in File"
+      #quit()
+    fi
+
+    #progress!.setIndeterminate(0)
+    #progress!.setMaximum(rows - 1)
+    #progress!.setText("Updating Costs")
+
+    ss! = new DTSpreadsheet()
+    ss!.open(serverFile$)
+    ss!.selectSheet(0)
+    headrow! = ss!.getRowAsVector()
+    
+    done = 0
+    for row = 2 to rows
+      row! = ss!.getRowAsVector()
+      ivm02.item_id$ = row!.get(0).toString()
+      extract record (ivm02, knum=0, key=kgen(ivm02$, ivm02k$, 0), err=*continue)ivm02$
+      done = done + 1
+      cost = num(row!.get(1).toString())
+      ivm02.UNIT_COST    = cost
+      ivm02.AVG_COST     = cost
+      ivm02.STD_COST     = cost
+      ivm02.REP_COST     = cost
+      ivm02.LANDED_COST  = cost
+      ivm02.LAST_PO_COST = cost
+      writerecord (ivm02)ivm02$
+      
+      k$ = ivm02.firm_id$ + ivm02.warehouse_id$ + ivm02.item_id$
+      read (ivm07, knum=0, key=k$, dom=*next)
+      repeat
+        k0$ = key(ivm07, end=*break)
+        if pad(k0$, len(k$)) <> k$ break
+        extractrecord (ivm07)ivm07$
+        ivm07.UNIT_COST    = cost
+        ivm07.AVG_COST     = cost
+        ivm07.STD_COST     = cost
+        ivm07.REP_COST     = cost
+        ivm07.LANDED_COST  = cost
+        ivm07.LAST_PO_COST = cost
+        writerecord (ivm07)ivm07$
+      until 0
+      #progress!.setValue(done)
+    next row
+    
+    outmsg$ = "Job completed: " + str(done) + " of " + str(rows - 1) + " items updated"
+
+    methodret outmsg$
+  
+  methodend
+  
+  method public void export(BBjCheckOnEvent e!)
+    #importFile!.setEnabled(0)
+    #start!.setEnabled(1)
+  methodend
+  
+  method public void import(BBjCheckOnEvent e!)
+    #importFile!.setEnabled(1)
+  methodend
+  
+  method public void close(BBjCloseEvent e!)
+    #quit()  
+  methodend
+  
+  method public void quit()
+    if len(#errmsg$) then
+      #progress!.setIndeterminate(0)
+      #progress!.setText(#result$)
+      a = msgbox(#errmsg$, 48, "Cost Import")
+    fi
+    call "CDS081", y$, -1
+  methodend
+  
+classend
+
+test:
+if len(Y$) = 0 then
+  begin
+  call "CDS011", "RP", "Import Costs"
+fi
+declare ExportImportCosts ic!
+ic! = new ExportImportCosts()
+

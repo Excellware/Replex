@@ -1,0 +1,58 @@
+REM "BankFile.bbj - 02/27/19 Build & Deliver Bank CSV file
+
+class public BankFile
+  field private BBjNumber ap22
+  field private BBjString ap22tpl$
+  field private BBjString tpl$
+  field private BBjString filename$
+
+  method public BankFile(BBjString tpl$)
+    call "/u/CDI/CD/bbj/CDS000", "RP"
+    #tpl$ = tpl$
+    filename$ = "RPAP22"
+    call "CDS095", ap22, filename$, "YNNW", ap22$
+    #ap22 = ap22
+    #filename$ = filename$
+    #ap22tpl$ = fattr(ap22$)
+  methodend
+
+  method public void process(BBjString rec$)
+    dim glt05$:#tpl$
+    glt05$ = rec$
+    dim ap22$:#ap22tpl$
+    ap22.CHECKNO$ = glt05.check_no$
+    call "CDS055", glt05.bnk_chk_date$, dat$[all]
+    ap22.CHECKDATE = num(dat$[2])
+    ap22.PAYEE$    = glt05.description$
+    ap22.AMOUNT    = glt05.check_amount
+    writerecord (#ap22)ap22$
+  methodend
+
+  method public void finish()
+    close (#ap22)
+    call "CDS041","CDS038",s038$,"YP"
+    s038.COLHEAD$ = "S"; rem "No col headings
+    s038.NOTIFY$ = "N"
+    s038.KEEPOPEN$ = "e"
+    call "CDS041","CDS084",s084$,"YP"
+    s084.NAME$="PFIL"
+    s084.MODE$="E"
+    s084.FILEOUT$ = ",xls"
+    call "CDS084",Y$,Y5$,U0,S084$,Y6,Y6$
+    call "CDS038",Y$,Y5$,Y5A$,Y6$,Y6,L,P,S038$,#filename$
+
+    declare BBjClientFileSystem fs!
+    declare BBjClientFile       clientFile!
+
+    fs! = BBjAPI().getThinClient().getClientFileSystem()
+    outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ReplexCheckRegister.txt"
+    clientFile! = fs!.getClientFile(outfile$)
+    if clientFile!.exists() then clientFile!.delete()
+    clientFile!.createNewFile()
+    clientFile!.copyToClient(s084.fileout$)
+    
+    call "CDS081", "", -999
+
+  methodend
+
+classend

@@ -1,0 +1,18 @@
+rem  BankFileRerun.bbj
+
+use ::BankFile.bbj::BankFile
+
+begin
+paydate$="20191219"
+
+call "CDS095",glt05,"glt05","YNY",glt05$
+declare BankFile bf!
+bf! = new BankFile(fattr(glt05$))
+
+repeat
+  read record (glt05, end=*break)glt05$
+  if glt05.bnk_chk_date$ = paydate$ bf!.process(glt05$)
+until 0
+
+bf!.finish()
+escape

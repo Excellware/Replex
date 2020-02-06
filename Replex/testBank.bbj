@@ -1,0 +1,15 @@
+0010 rem "test Bank File
+0020 call "/u/CDI/CD/bbj/CDS000", "RP", "", "", "NN"
+0100 use ::/u/CDI/RP/BankFile.bbj::BankFile
+0105 call "CDS041","glt05",glt05$,"YY"
+0110 BankFile! = new BankFile(fattr(glt05$))
+0120 glt05.check_no$="0000001"
+0130 glt05.bnk_chk_date$="10/15/18"
+0140 glt05.description$="Google"
+0150 glt05.check_amount=100
+0160 BankFile!.process(glt05$)
+0170 glt05.check_no$="0000002"
+0180 glt05.description$="Apple"
+0190 glt05.check_amount=125.44
+0200 BankFile!.process(glt05$)
+0210 BankFile!.finish()

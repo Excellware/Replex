@@ -1,0 +1,52 @@
+REM /**
+REM  * QuantityAvailable.bbj
+REM  * @author len
+REM  *
+REM  * Returns quantity available to ship to prevent invoicing that would cause
+REM  * QOH to go negative
+REM  */
+
+class public QuantityAvailable
+  field private BBjNumber qoh
+  field private BBjNumber shipped
+  field private BBjNumber available
+  field private BBjString message$
+  
+  method public QuantityAvailable(BBjString rec$, BBjNumber qty_shipped)
+    #setEnvironment()
+    #qoh       = #getQOH(rec$)
+    #shipped   = #getShipped(rec$)  
+    #available = #qoh - #shipped
+    if #available < qty_shipped then
+      #message$ = "Quantity shipped exceeds Quantity Available of " + DT.toString(#available)
+      #message$ = #message$ + $0a$ + "Quantity on Hand " + DT.toString(#qoh) + " less existing shipments of " + DT.toString(#shipped)
+    fi
+  methodend
+  
+  method private BBjNumber getQOH(BBjString rec$)
+    call "CDS095", ivm02, "ivm02", "YUY", ivm02$
+    readrecord (ivm02, knum=0, key=rec.firm_id$ + rec.warehouse_id$ + rec.item_id$, err=*next)ivm02$
+    methodret ivm02.qty_on_hand 
+  methodend
+  
+  method private BBjNumber getShipped(BBjString rec$)
+    call "CDS095", opt11, "opt11", "YUY", opt11$
+    opt11s = unt
+    select (opt11s)opt11$ from "opt11" where opt11.firm_id$ = rec.firm_id$ and opt11.warehouse_id$ = rec.warehouse_id$ and opt11.item_id$ = rec.item_id$
+    repeat
+      readrecord (opt11, end=*break)opt11$
+      if opt11.order_no$ <> rec.order_no$ or opt11.line_no$ <> rec.line_no$ then shipped = shipped + opt11.qty_shipped
+    until 0
+    close (opt11s)
+    methodret shipped
+  methodend
+  
+  method private void setEnvironment()
+    sm08$ = stbl("SMS_SM08", err=*next)
+    if len(sm08$) = 0 call "/u/CDI/CD/CDS000", "RP"
+  methodend
+  
+  method public BBjString getMessage()
+    methodret #message$
+  methodend
+classend
