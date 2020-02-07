@@ -18,8 +18,8 @@ class public QuantityAvailable
     #shipped   = #getShipped(rec$)  
     #available = #qoh - #shipped
     if #available < qty_shipped then
-      #message$ = "Quantity to Ship exceeds Quantity Available of " + DT.toString(#available)
-      #message$ = #message$ + $0a$ + "Quantity on Hand " + DT.toString(#qoh) + " less existing shipments of " + DT.toString(#shipped)
+      #message$ = "Quantity to Ship exceeds Quantity Available of " + #toString(#available)
+      #message$ = #message$ + $0a$ + "Quantity on Hand " + #toString(#qoh) + " less existing shipments of " + #toString(#shipped)
     fi
   methodend
   
@@ -48,5 +48,10 @@ class public QuantityAvailable
   
   method public BBjString getMessage()
     methodret #message$
+  methodend
+  
+  method private BBjString toString(BBjNumber number)
+    if number = 0 then methodret "0"
+    methodret DT.toString(number)
   methodend
 classend
