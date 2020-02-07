@@ -54,4 +54,8 @@ class public QuantityAvailable
     if number = 0 then methodret "0"
     methodret DT.toString(number)
   methodend
+  
+  method private BBjNumber getEntryQuantity()
+    methodret max(0, #available)
+  methodend
 classend
