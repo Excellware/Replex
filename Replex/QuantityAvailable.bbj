@@ -18,7 +18,7 @@ class public QuantityAvailable
     #shipped   = #getShipped(rec$)  
     #available = #qoh - #shipped
     if #available < qty_shipped then
-      #message$ = "Quantity shipped exceeds Quantity Available of " + DT.toString(#available)
+      #message$ = "Quantity to Ship exceeds Quantity Available of " + DT.toString(#available)
       #message$ = #message$ + $0a$ + "Quantity on Hand " + DT.toString(#qoh) + " less existing shipments of " + DT.toString(#shipped)
     fi
   methodend
