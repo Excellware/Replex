@@ -55,7 +55,7 @@ class public QuantityAvailable
     methodret DT.toString(number)
   methodend
   
-  method private BBjNumber getEntryQuantity()
+  method public BBjNumber getEntryQuantity()
     methodret max(0, #available)
   methodend
 classend
