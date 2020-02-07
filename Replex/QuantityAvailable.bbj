@@ -34,7 +34,7 @@ class public QuantityAvailable
     opt11s = unt
     select (opt11s)opt11$ from "opt11" where opt11.trans_status$ <> "U" and opt11.firm_id$ = rec.firm_id$ and opt11.warehouse_id$ = rec.warehouse_id$ and opt11.item_id$ = rec.item_id$
     repeat
-      readrecord (opt11, end=*break)opt11$
+      readrecord (opt11s, end=*break)opt11$
       if opt11.order_no$ <> rec.order_no$ or opt11.line_no$ <> rec.line_no$ then shipped = shipped + opt11.qty_shipped
     until 0
     close (opt11s)
