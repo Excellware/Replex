@@ -34,9 +34,13 @@ class public dynawebServlet
   methodend
   
   method private void salesRankingByItem()
-      declare DTView view!
+      declare DTView             view!
+      declare BBjTemplatedString rec!
       view! = new DTView("XX", "SABI", "A")
-      DTServletOut.addData(view!.getForm())
+      rec!  = view!.getRecord()
+      rec!.setFieldValue("month", num(date(0:"%M")))
+      rec!.setFieldValue("year",  num(date(0:"%Yl")))
+      DTServletOut.addData(view!.getForm(rec!, null()))
       DTServletOut.addButton(DTButton.cancel("Close", BBjAPI.TRUE))
   methodend
   
