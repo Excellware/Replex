@@ -1,0 +1,35 @@
+REM /**
+REM  * dynawebServlet.bbj
+REM  * @author len
+REM  *
+REM  */
+
+use ::DTButton.bbj::DTButton
+
+class public dynawebServlet
+  field private DTServlet servlet!
+  field private BBjInt    httpStatus! = 0
+  field private BBjString msg! = ""
+  field private BBjString alert! = ""
+  field private BBjInt    tabindexfocus% = 0
+  
+  method public void service(BBjspServletContext context!)
+    declare HashMap methodsMap!
+    methodsMap! = new HashMap()
+    methodsMap!.put("salesRankingByItem", "GET")
+    #servlet! = new DTServlet(context!, methodsMap!)
+    if pos(DT.getCC() = "RP", 2) = 0 then
+      #msg! = "This application is not valid for company code '" + DT.getCC() + "'"
+    else
+      switch #servlet!.getMethod()
+        case "salesRankingByItem"; #salesRankingByItem(); break
+      swend
+    fi
+    #servlet!.respond(#httpStatus!, #msg!, #alert!)
+  methodend
+  
+  method private void salesRankingByItem()
+    DTServletOut.addButton(DTButton.cancel("Close", BBjAPI.TRUE))
+  methodend
+  
+classend
