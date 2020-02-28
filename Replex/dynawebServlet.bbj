@@ -50,7 +50,7 @@ class public dynawebServlet
     declare SalesRankingByItem report!
     month% = int(num(fields!.get("month").toString()))
     year%  = int(num(fields!.get("year").toString()))
-    report! = new SalesRankingByItem (month%, year%)
+    report! = new SalesRankingByItem (year%, month%)
 
 REM     call "SW005", "CD", "SM", sm00$
     declare DTJsonObject action!
