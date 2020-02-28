@@ -1,0 +1,193 @@
+REM /**
+REM  * GLTransTrigger.bbj
+REM  * @author Len Krause, Excellware, Inc.
+REM  * December 2019
+REM  *
+REM  * After wrting to legacy GL Transaction file GL302, write to Addon GLE_DAILYDETAIL file glt-04
+REM  * Requires use of barista config file for globals for path to GL data file
+REM  * Also requires Working Directory set to Addon install diractory
+REM  * Be sure to change the Working Directory for this trigger when upgrading Addon
+REM  * 
+REM  */
+
+tmp$ = stbl("!ERROR_HANDLER", "/u/CDI/CD/bbj/CDS063.bbj")
+
+setopts $080872202c2e$
+
+declare BBjTriggerData td!
+td! = BBjAPI().getFileSystem().getTriggerData()
+
+wkdir$ = dir("")
+gldir$ = stbl("+GLDATA")
+
+gl302Tpl$ = "key:c(17), fs1:c(1*), period:n(2), fs2:c(1*), journalno:n(5), fs3:c(1*), glacctno:c(6), fs4:c(1*), seq:c(4), fs5:c(1*), date:c(8), fs6:c(1*), amount:n(11*), desc:c(30*)"
+dim gl302$:gl302Tpl$
+gl302$ = td!.getWriteBuffer()
+
+if len(gl302.fs1$ + gl302.fs2$ + gl302.fs3$ + gl302.fs4$ + gl302.fs5$ + gl302.fs6$) then
+  DT.log("Non null field separator")
+  end
+fi
+
+dat$ = gl302.key$ + gl302.period$ + gl302.journalno$ + gl302.glacctno$ + gl302.seq$ + gl302.date$ + gl302.desc$
+if cvs(dat$, 16) <> dat$ then
+  DT.log("Non printable data")
+  end
+fi
+
+if len(gl302.date$) <> 8 or gl302.date$(3,1) <> "/" or gl302.date$(6,1) <> "/" then
+  DT.log("Invalid Date: '" + gl302.date$ + "'")
+  end
+fi
+  
+rem  Open Addon G/L files
+
+  glt04_dev = unt
+  open (glt04_dev) gldir$ + "glt-04"
+  
+  glm01_dev = unt
+  open (glm01_dev) gldir$ + "glm-01"
+  
+  tpl_dev = unt
+  open (tpl_dev) wkdir$ + "sys/data/ddm_table_tpls.dat"
+  read (tpl_dev, key=pad("GLE_DAILYDETAIL", 16)) *, *, glt_detail$
+  dim glt_detail$:glt_detail$
+  read (tpl_dev, key=pad("GLM_ACCT", 16)) *, *, glm_acct$
+  dim glm_acct$:glm_acct$
+  
+  chan = unt
+  open (chan)"/u/fb/df/SFC-VD"
+  read (chan)*, *, yedate$
+  close (chan)
+  postingYear$ = str(num(yedate$(7,4)) - 1 :"0000")
+  
+rem  Map fields
+
+  glt_detail.firm_id$      = "01"
+  glt_detail.process_id$   = fill(16)
+  glt_detail.batch_no$     = fill(7)
+  glt_detail.journal_id$   = GL.get_journalId(gl302.journalno$)
+  glt_detail.gl_adt_no$    = fill(7)
+  glt_detail.posting_year$ = postingYear$
+  glt_detail.posting_per$  = gl302.period$
+  glt_detail.trns_date$    = "20" + gl302.date$(7,2) + gl302.date$(1,2) + gl302.date$(4,2)
+  glt_detail.gl_account$   = pad(gl302.glacctno$, 10, "0")
+  glt_detail.reference_01$ = ""
+  glt_detail.reference_02$ = ""
+  glt_detail.reference_03$ = ""
+  glt_detail.description$  = gl302.desc$
+  glt_detail.period$       = gl302.period$
+  glt_detail.year$         = postingYear$
+  glt_detail.dealer_str$   = ""
+  glt_detail.trans_amt     = gl302.amount
+  glt_detail.units         = 0
+  glt_detail.dealer_num_01 = 0
+  glt_detail.dealer_num_02 = 0
+  glt_detail.dealer_num_03 = 0
+
+rem --- See if detail or summary postings for this account
+
+  detail$ = "Y"
+  while 1
+    read record (glm01_dev, key=glt_detail.firm_id$ + glt_detail.gl_account$, dom=*break)glm_acct$
+    if glm_acct.detail_flag$ = "Y"
+      detail$ = "Y"
+    else
+      detail$ = "N"
+    fi
+    break
+  wend
+
+rem --- Build the key
+
+  key$ = glt_detail.firm_id$ + glt_detail.process_id$ + glt_detail.batch_no$ + glt_detail.journal_id$
+  key$ = key$ + glt_detail.gl_adt_no$ + glt_detail.posting_year$ + glt_detail.posting_per$ + glt_detail.trns_date$
+  key$ = key$ + glt_detail.gl_account$
+
+rem --- Set the sequence number
+  if detail$ = "N" then
+    dim sumRec$:fattr(glt_detail$)
+    key$ = key$ + "00001"
+    recordFound = 0
+    read record(glt04_dev, key = key$, dom=*next)sumRec$; recordFound = 1
+    if recordFound then
+        rem ' add the existing amount to the incoming amount
+      glt_detail.trans_amt = glt_detail.trans_amt + sumRec.trans_amt
+      glt_detail.units = glt_detail.units + sumRec.units
+      glt_detail.seq_no$ = sumRec.seq_no$
+    else
+        rem ' the first summarized transaction just use seq 1
+      glt_detail.seq_no$ = "00001"
+    endif
+  else
+    rem ' detail = Y, find the next seq number
+    seq_no = 0
+    keylen = len(key$)
+    tryKey$ = key$ + $ff$
+    read (glt04_dev, key=tryKey$, dom=*next)
+    k$ = keyp(glt04_dev, end=set_seq)
+    if k$(1, keylen) = key$ then seq_no = num(k$(keylen + 1))
+    set_seq:
+    if seq_no + 1 > 99999
+      glt_detail.seq_no$ = "99999"
+      dim sumRec$:fattr(glt_detail$)
+      read record(glt04_dev, key = key$)sumRec$
+      glt_detail.trans_amt = glt_detail.trans_amt + sumRec.trans_amt
+      glt_detail.units = glt_detail.units + sumRec.units
+      glt_detail.seq_no$ = sumRec.seq_no$
+    else
+      glt_detail.seq_no$ = str(seq_no + 1:"00000")
+    endif
+  endif
+
+rem  write to Addon file
+  glt_detail$ = field(glt_detail$)
+  write record(glt04_dev)glt_detail$
+  close(glt04_dev)
+  end
+  
+use java.util.HashMap
+class public GL
+  method public static BBjString get_journalId(BBjString journalno$)
+    declare HashMap journalIdMap!
+    journalIdMap! = #getJournalIdMap()
+    methodret journalIdMap!.get(journalno$).toString()
+  methodend
+  
+  method public static HashMap getJournalIdMap()
+    declare HashMap      map!
+    declare BBjNamespace ns!
+    nskey$ = "journalIdMap"
+    ns! = BBjAPI().getGlobalNamespace()
+    map! = cast(HashMap, ns!.getValue(nskey$), err=*next)
+    if map! = null() then
+      map! = #buildJournalIdMap()
+      ns!.setValue(nskey$, map!)
+    fi
+    methodret map!
+  methodend
+  
+  method public static HashMap buildJournalIdMap()
+    declare HashMap map!
+    map! = new HashMap()
+    chan = unt
+    open (chan)"/u/fb/df/GL305"
+    repeat
+      read (chan, end=*break)journalno$, *, id$
+      map!.put(journalno$, id$)
+    until 0
+    close (chan)
+    methodret map!
+  methodend
+  
+  method public static BBjNumber test()
+    chan = unt
+    open (chan)"/u/fb/df/GL302"
+    repeat
+      extract record (chan, end=*break) rec$
+      write record (chan)rec$
+      count = count + 1
+    until 0
+    methodret count
+  methodend
+classend
