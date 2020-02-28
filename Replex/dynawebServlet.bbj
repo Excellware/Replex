@@ -57,7 +57,7 @@ REM     call "SW005", "CD", "SM", sm00$
     action! = new DTJsonObject()
     action!.put("type", "action")
 REM     action!.put("url", cvs(sm00.httpname$, 2) + "/" + s084.fileout$)
-    action!.put("url", stbl("SMS_Referer") + "/" + s084.fileout$)
+    action!.put("url", stbl("SMS_Referer") + "/" + report!.getFileout())
     action!.put("newPage", BBjAPI.TRUE)
     DTServletOut.addData(action!)
   methodend
