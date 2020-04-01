@@ -63,6 +63,7 @@ for period = 0 to 10
       amount = gl301.cy[period]
     else
       amount = gl301.bb
+      if amount = -.99 then amount = 0; rem  CBS flag for income & expense, no bb
     fi
     
     if amount = 0 continue
