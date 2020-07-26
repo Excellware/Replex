@@ -3,11 +3,18 @@ REM  * GLTransTrigger.bbj
 REM  * @author Len Krause, Excellware, Inc.
 REM  * December 2019
 REM  *
-REM  * After wrting to legacy GL Transaction file GL302, write to Addon GLE_DAILYDETAIL file glt-04
+REM  * After wrIting to legacy GL Transaction file GL302, write to Addon GLE_DAILYDETAIL file glt-04
 REM  * Requires use of barista config file for globals for path to GL data file
 REM  * Also requires Working Directory set to Addon install diractory
 REM  * Be sure to change the Working Directory for this trigger when upgrading Addon
 REM  * 
+REM  * Although this program worked properly, the Fick software produces GL postings that
+REM  * are out of balance.  Addon does not provide an option to edit posting in the
+REM  * glt-4 file, so posting needs to be made to the journal entry file.
+REM  * 
+REM  * Due to the differences in key structure between the Fick and Addon files,
+REM  * this trigger is no longer used.  Instead a batch program is called by Fick
+REM  * program ZI which removes GL302 records when the month is closed.
 REM  */
 
 tmp$ = stbl("!ERROR_HANDLER", "/u/CDI/CD/bbj/CDS063.bbj")
@@ -180,7 +187,10 @@ class public GL
     methodret map!
   methodend
   
-  method public static BBjNumber test()
+  rem  Re-write all existing records to populate Addon File
+  rem  load "/u/fb/pf/GLTransTrigger.bbj"
+  rem  ?GL.convert()
+  method public static BBjNumber convert()
     chan = unt
     open (chan)"/u/fb/df/GL302"
     repeat
@@ -188,6 +198,7 @@ class public GL
       write record (chan)rec$
       count = count + 1
     until 0
+    close (chan)
     methodret count
   methodend
 classend
