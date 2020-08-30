@@ -19,23 +19,21 @@ use ::DTJsonObject.bbj::DTJsonObject
 use ::DTLogin.bbj::DTLogin
 use ::DTTemplatedString.bbj::DTTemplatedString
 use ::DTServlet.bbj::DTServlet
-use ::DTServletUtils.bbj::DTServletUtils
 use ::DTServletOut.bbj::DTServletOut
-use ::DTServletResult.bbj::DTServletResult
 use ::DTServletRequestParameters.bbj::DTServletRequestParameters
 use ::DTSession.bbj::DTSession
 use ::DTFileRecords.bbj::DTFileRecords
 use java.util.HashMap
 
-set SMSDIR=C:/u/CDI/
+set SMSDIR=/<dev>/u/CDI/
 set SMS_ERROR_EMAIL=false
 
-PREFIX      /Users/len/ews/DynamoTools/SMS/src6/ /Users/len/ews/DynamoTools/SMS/servlets/ /Users/len/ews/DynamoTools/SMS/src5/ /Users/len/ews/DynamoTools/FMS/src5/ /Users/len/ews/DynamoTools/WMS/src5/ /Users/len/ews/DynamoTools/SMS/arc/ /bbj/utils/ /bbj/utils/translations/ /Users/len/ews/Dynamo/src6/ /Users/len/ews/Dynamo/servlets/ /Users/len/ews/Cust/fick/ /Users/len/ews/Cust/Replex/
-set SMS_PFX=/Users/len/ews/DynamoTools/SMS/src6/ /Users/len/ews/DynamoTools/SMS/servlets/ /Users/len/ews/DynamoTools/SMS/src5/ /Users/len/ews/DynamoTools/FMS/src5/ /Users/len/ews/DynamoTools/WMS/src5/ /bbj/utils/
+PREFIX      D:/Users/len/ews/Dynamo/src6/ D:/Users/len/ews/Dynamo/servlets/ D:/Users/Public/ews/DynamoTools/src/ D:/Users/len/ews/Replex/src/ 
+set SMS_PFX=D:/Users/len/ews/Dynamo/src6/ D:/Users/len/ews/Dynamo/servlets/
 
 DSKSYN A:
 DSKSYN B:
-DSKSYN D:
+DSKSYN C:
 DSKSYN E:
 DSKSYN F:
 DSKSYN G:
