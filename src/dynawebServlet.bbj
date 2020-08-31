@@ -74,8 +74,8 @@ class public dynawebServlet
       rec!  = view!.getRecord()
       mth  = num(date(0:"%M"))
       year = num(date(0:"%Yl"))
-      rec!.setFieldValue("dateFrom", jul(year, mth, 1))
-      rec!.setFieldValue("dateTo",   jul(0,0,0))
+      rec!.setFieldValue("datefrom", jul(year, mth, 1))
+      rec!.setFieldValue("dateto",   jul(0,0,0))
       DTServletOut.addData(view!.getForm(rec!, null()))
       DTServletOut.addButton(DTButton.cancel("Close", BBjAPI.TRUE))
   methodend
