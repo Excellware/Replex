@@ -84,8 +84,8 @@ class public dynawebServlet
     declare HashMap fields!
     fields! = #servlet!.getFirstFormFields()
     declare OntimeShipments report!
-    dateFrom$ = fields!.get("dateFrom").toString()
-    dateTo$   = fields!.get("dateTo").toString()
+    dateFrom$ = fields!.get("datefrom").toString()
+    dateTo$   = fields!.get("dateto").toString()
     call "CDS055", dateFrom$, dat$[all]; dateFrom = num(dat$[2])
     call "CDS055", dateTo$,   dat$[all]; dateTo   = num(dat$[2])
     report! = new OntimeShipments(dateFrom, dateTo)
