@@ -83,9 +83,11 @@ class public dynawebServlet
   method private void ontimeShipmentsProcess()
     declare HashMap fields!
     fields! = #servlet!.getFirstFormFields()
-    declare OntimeShipments report! 
-    dateFrom = num(fields!.get("dateFrom"))
-    dateTo   = num(fields!.get("dateTo"))
+    declare OntimeShipments report!
+    dateFrom$ = fields!.get("dateFrom").toString()
+    dateTo$   = fields!.get("dateTo").toString()
+    call "CDS055", dateFrom$, dat$[all]; dateFrom = num(dat$[2])
+    call "CDS055", dateTo$,   dat$[all]; dateTo   = num(dat$[2])
     report! = new OntimeShipments(dateFrom, dateTo)
     declare DTJsonObject action!
     action! = new DTJsonObject()

@@ -49,8 +49,8 @@ classend
 
 begin
 call "CDS091", y$
-declare OntimeShipments sabi!
-sabi! = new OntimeShipments ("2020-08-01", "2020-08-31")
-arg$ = sabi!.getFileout()
+declare OntimeShipments report!
+report! = new OntimeShipments (jul(2020,8,1), jul(2020,8,31))
+arg$ = report!.getFileout()
 opt$ = "B"
 call "CDS188", err=*next, y$, cmd$, arg$, opt$, title$, nsid$
