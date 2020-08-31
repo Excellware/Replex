@@ -9,7 +9,21 @@ class public OntimeShipments
   field private BBjString msg!
   
   method public OntimeShipments(BBjNumber dateFrom, BBjNumber dateTo)
-  #msg!= "Under Construction"
+  call "CDS095", opt01, "opt01", "YNY", opt01$
+  opt01s = unt
+  dateFrom$ = date(dateFrom:"%Yl%Mz%Dz")
+  dateTo$   = date(dateTo:  "%Yl%Mz%Dz")
+  select (opt01s)opt01$ from "/u/CDI/RP/opt01" where opt01.firm_id$ = "01" and (" " <> opt01.ar_inv_no$) and opt01.shipmnt_date$ >= dateFrom$ and opt01.shipmnt_date$ <= dateTo$
+  repeat
+    read record (opt01s, end=*break)opt01$
+    recs = recs + 1
+  until 0
+  #msg! = "Under Construction " + str(recs) + " shipments within date range"
+  methodret
+    
+
+
+
 REM     
 REM     year$ = str(year%)
 REM     call "CDS095", ivm01, "ivm01", "YNY", ivm01$
