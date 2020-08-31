@@ -7,6 +7,7 @@ REM  */
 use ::DTButton.bbj::DTButton
 use ::DTView.bbj::DTView
 use ::SalesRankingByItem.bbj::SalesRankingByItem
+use ::OntimeShipments.bbj::OntimeShipments
 use java.util.HashMap
 
 class public dynawebServlet
@@ -21,6 +22,8 @@ class public dynawebServlet
     methodsMap! = new HashMap()
     methodsMap!.put("salesRankingByItem",        "GET")
     methodsMap!.put("salesRankingByItemProcess", "POST")
+    methodsMap!.put("ontimeShipments",           "GET")
+    methodsMap!.put("ontimeShipmentsProcess",    "POST")
     #servlet! = new DTServlet(context!, methodsMap!)
     if pos(DT.getCC() = "RP", 2) = 0 then
       #msg! = "This application is not valid for company code '" + DT.getCC() + "'"
@@ -28,6 +31,8 @@ class public dynawebServlet
       switch #servlet!.getMethod()
         case "salesRankingByItem";        #salesRankingByItem();        break
         case "salesRankingByItemProcess"; #salesRankingByItemProcess(); break
+        case "ontimeShipments";           #ontimeShipments();           break
+        case "ontimeShipmentsProcess";    #ontimeShipmentsProcess();    break
       swend
     fi
     #servlet!.respond(#httpStatus!, #msg!, #alert!)
@@ -62,4 +67,34 @@ class public dynawebServlet
     DTServletOut.addData(action!)
   methodend
   
+  method private void ontimeShipments()
+      declare DTView             view!
+      declare BBjTemplatedString rec!
+      view! = new DTView("XX", "OTSR", "A")
+      rec!  = view!.getRecord()
+      mth  = num(date(0:"%M"))
+      year = num(date(0:"%Yl"))
+      rec!.setFieldValue("dateFrom", jul(year, mth, 1))
+      rec!.setFieldValue("dateTo",   jul(0,0,0))
+      DTServletOut.addData(view!.getForm(rec!, null()))
+      DTServletOut.addButton(DTButton.cancel("Close", BBjAPI.TRUE))
+  methodend
+  
+  method private void ontimeShipmentsProcess()
+    declare HashMap fields!
+    fields! = #servlet!.getFirstFormFields()
+    declare OntimeShipments report! 
+    dateFrom$ = fields!.get("dateFrom").toString()
+    dateTo$   = fields!.get("dateTo").toString()
+
+    declare DTJsonObject action!
+    action! = new DTJsonObject()
+    action!.put("type", "action")
+    fileout$ = report!.getFileout()
+    call "SW005", "CD", "SM", sm00$      
+    action!.put("url", cvs(sm00.httpname$, 2) + fileout$(pos("/tmp/" = fileout$)))
+    action!.put("newPage", BBjAPI.TRUE)
+    DTServletOut.addData(action!)
+  methodend
+
 classend

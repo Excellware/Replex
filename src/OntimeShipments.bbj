@@ -1,0 +1,54 @@
+REM /**
+REM  * OntimeShipments.bbj
+REM  * @author len
+REM  *
+REM  */
+
+class public OntimeShipments
+  field private BBjString fileout$
+  
+  method public OntimeShipments(BBjString dateFrom$, BBjString dateTo$)
+    year$ = str(year%)
+    call "CDS095", ivm01, "ivm01", "YNY", ivm01$
+    call "CDS095", sam07, "sam07", "YNY", sam07$
+    wfil$ = "sabi"
+    call "CDS095", sabi, wfil$, "YYYW", sabi$
+    repeat
+      readrecord (sam07, end=*break)sam07$
+      if sam07.firm_id$ <> "01" continue
+      if sam07.year$ <> year$ continue
+      redim sabi$
+      sabi.sales_mth = sam07.sales[month%]
+      for i = 1 to month%
+        sabi.sales_ytd = sabi.sales_ytd + sam07.sales[month%]
+      next i
+      if sabi.sales_mth = 0 and sabi.sales_ytd = 0 continue
+      sabi.itemno$ = sam07.item_id$
+      ivm01.item_desc$ = "*** Not on File ***"
+      readrecord (ivm01, knum=0, key=sam07.firm_id$ + sam07.item_id$, dom=*next)ivm01$
+      sabi.description$ = ivm01.item_desc$
+      write record (sabi)sabi$
+    until 0
+    unlock (sabi)
+    call "CDS091", y$
+    call "CDS584", y6$, "Sales Ranking by Item"
+    #fileout$ = y6.fileout$
+    kno = 1
+    y5$ = "Sales Ranking by Item"
+    y5a$ = date(jul(year%, month%, 1):"%Ml %Yl")
+    call "CDS038", y$, y5$, y5a$, y6$, y6, l, p, s038$, wfil$, kno, keybegin$, keyend$, disp$, where$, sortby$, mode$, limitval, subhead$
+  methodend 
+
+  method public BBjString getFileout()
+    methodret #fileout$
+  methodend
+
+classend
+
+begin
+call "CDS091", y$
+declare OntimeShipments sabi!
+sabi! = new OntimeShipments ("2020-08-01", "2020-08-31")
+arg$ = sabi!.getFileout()
+opt$ = "B"
+call "CDS188", err=*next, y$, cmd$, arg$, opt$, title$, nsid$
