@@ -10,15 +10,22 @@ class public OntimeShipments
   
   method public OntimeShipments(BBjNumber dateFrom, BBjNumber dateTo)
   call "CDS095", opt01, "opt01", "YNY", opt01$
+  call "CDS095", opt11, "opt11", "YNY", opt11$
   opt01s = unt
   dateFrom$ = date(dateFrom:"%Yl%Mz%Dz")
   dateTo$   = date(dateTo:  "%Yl%Mz%Dz")
   select (opt01s)opt01$ from "/u/CDI/RP/opt01" where opt01.firm_id$ = "01" and (" " <> opt01.ar_inv_no$) and opt01.shipmnt_date$ >= dateFrom$ and opt01.shipmnt_date$ <= dateTo$
   repeat
     read record (opt01s, end=*break)opt01$
-    recs = recs + 1
+    opt11s = unt
+    select (opt11s)opt11$ from "/u/CDI/RP/opt11" where opt11.firm_id$ = opt01.firm_id$ and opt11.ar_type$ = opt01.ar_type$ and opt11.customer_id$ = opt01.customer_id$ and opt11.ar_inv_no$ = opt01.ar_inv_no$
+    repeat
+      readrecord (opt11s, end=*break)opt11$
+      recs = recs + 1
+    until 0
+    close (opt11s)
   until 0
-  #msg! = "Under Construction " + str(recs) + " shipments within date range"
+  #msg! = "Under Construction " + str(recs) + " line items within date range"
   methodret
     
 
