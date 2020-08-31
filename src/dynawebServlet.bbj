@@ -89,6 +89,9 @@ class public dynawebServlet
     call "CDS055", dateFrom$, dat$[all]; dateFrom = num(dat$[2])
     call "CDS055", dateTo$,   dat$[all]; dateTo   = num(dat$[2])
     report! = new OntimeShipments(dateFrom, dateTo)
+    #msg! = report!.getErrMsg()
+    if ! #msg!.isEmpty() methodret    
+    
     declare DTJsonObject action!
     action! = new DTJsonObject()
     action!.put("type", "action")

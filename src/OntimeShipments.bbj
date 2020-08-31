@@ -6,9 +6,10 @@ REM  */
 
 class public OntimeShipments
   field private BBjString fileout$
+  field private BBjString msg!
   
   method public OntimeShipments(BBjNumber dateFrom, BBjNumber dateTo)
-  #fileout$ = ""
+  #msg!= "Under Construction"
 REM     
 REM     year$ = str(year%)
 REM     call "CDS095", ivm01, "ivm01", "YNY", ivm01$
@@ -43,6 +44,10 @@ REM     call "CDS038", y$, y5$, y5a$, y6$, y6, l, p, s038$, wfil$, kno, keybegin
 
   method public BBjString getFileout()
     methodret #fileout$
+  methodend
+
+  method public BBjString getErrMsg()
+    methodret #msg!
   methodend
 
 classend
