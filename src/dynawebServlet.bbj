@@ -107,6 +107,10 @@ class public dynawebServlet
       declare DTView reporting!
       reporting! = new DTView("XX", "OTSR", "B")
       reporting!.addButton(DTButton.cancel("Close"))
+      out$ = "Orders Shipped " + date(dateFrom) + "-" + date(dateTo) + " - "
+      if len(custno$) = 6 then call "SW001", "arm01", 0, "01" + custno$, arm01$, sw001$
+      out$ = out$ + iff(len(custno$) = 6, custno$ + " " + arm01.customer_name$, "All Customers")
+      reporting!.setTitle(reporting!.getTitle() + " - " + out$)
       DTServletOut.addData(reporting!.getForm())
     fi
   methodend

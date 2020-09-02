@@ -206,6 +206,8 @@ class public OntimeShipments
     s038.keepopen$ = "Y"
     call "CDS084", y$, y5$, u0, s084$, y6, y6$
     call "CDS038", y$, y5$, y5a$, y6$, y6, l, p, s038$, filename$, kno, keybegin$, keyend$, disp$
+    print (y6.ch)""
+    print (y6.ch)subtitle$
     close (y6.ch)
     call "SW005", "CD", "SM", sm00$      
     action! = new DTJsonObject()
