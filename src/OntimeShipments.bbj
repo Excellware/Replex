@@ -238,7 +238,7 @@ class public OntimeShipments
   methodend
 
   method private static BBjString getShortSubtitle(DTJsonObject store!)
-    out$ = "Orders Shipped from " + date(store!.getNumber("dateFrom")) + " - " + date(store!.getNumber("dateTo")) + "-"
+    out$ = "Orders Shipped " + date(store!.getNumber("dateFrom")) + "-" + date(store!.getNumber("dateTo")) + " - "
     out$ = out$ + iff(len(store!.getString("custno")) = 6, store!.getString("custno_name"), "All Customers")
     methodret out$
   methodend
