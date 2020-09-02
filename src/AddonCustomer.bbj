@@ -1,0 +1,33 @@
+REM /**
+REM  * AddonCustomer.bbj
+REM  * @author len
+REM  *
+REM  */
+
+use ::DTGrid.bbj::DTGrid
+use ::DTCol.bbj::DTCol
+use ::DTView.bbj::DTView
+use ::DTViewField.bbj::DTViewField
+
+class public AddonCustomer
+  rem  This method is used for any GUI form
+  rem  set Data Dictionary GuiClassName to AddonCustomer
+  method public static BBjInt formField(DTView view!, DTViewField field!)
+    field!.setIcon("fa fa-search")
+    field!.setOnChangeApi("/dyn/rp/addonCustomerSearch?rowselectapi=/dyn/rp/addonCustomerForm&fieldname=" + field!.getFormFieldName())
+    field!.setMax(25)
+    view!.addField(field!)
+    methodret 1
+  methodend
+
+  rem  This method is used for any GUI grid
+  rem  set Data Dictionary GuiClassName to AddonCustomer
+  method public static BBjInt gridField(DTViewField field!)
+    field!.setIcon("fa fa-search")
+    field!.setOnChangeApi("/dyn/rp/addonCustomerSearch?rowselectapi=/dyn/rp/addonCustomerGrid&fieldname=" + field!.getFormFieldName())
+    maxval = num(field!.getMax(), err=*next)
+    if maxval < 25 then field!.setMax(25)
+    methodret 1
+  methodend
+
+classend

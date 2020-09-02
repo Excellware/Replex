@@ -6,6 +6,9 @@ REM  */
 
 use ::DTButton.bbj::DTButton
 use ::DTView.bbj::DTView
+use ::DTPopup.bbj::DTPopup
+use ::DTGrid.bbj::DTGrid
+use ::DTFormUpdate.bbj::DTFormUpdate
 use ::SalesRankingByItem.bbj::SalesRankingByItem
 use ::OntimeShipments.bbj::OntimeShipments
 use java.util.HashMap
@@ -22,8 +25,11 @@ class public dynawebServlet
     methodsMap! = new HashMap()
     methodsMap!.put("salesRankingByItem",        "GET")
     methodsMap!.put("salesRankingByItemProcess", "POST")
-    methodsMap!.put("ontimeShipments",           "GET")
-    methodsMap!.put("ontimeShipmentsProcess",    "POST")
+    methodsMap!.put("onTimeShipments",           "GET")
+    methodsMap!.put("onTimeShipmentsProcess",    "POST")
+    methodsMap!.put("onTimeShipmentsReporting",  "POST")
+    methodsMap!.put("addonCustomerSearch",       "GET")
+    methodsMap!.put("addonCustomerForm",         "GET")
     #servlet! = new DTServlet(context!, methodsMap!)
     if pos(DT.getCC() = "RP", 2) = 0 then
       #msg! = "This application is not valid for company code '" + DT.getCC() + "'"
@@ -31,8 +37,11 @@ class public dynawebServlet
       switch #servlet!.getMethod()
         case "salesRankingByItem";        #salesRankingByItem();        break
         case "salesRankingByItemProcess"; #salesRankingByItemProcess(); break
-        case "ontimeShipments";           #ontimeShipments();           break
-        case "ontimeShipmentsProcess";    #ontimeShipmentsProcess();    break
+        case "onTimeShipments";           #onTimeShipments();           break
+        case "onTimeShipmentsProcess";    #onTimeShipmentsProcess();    break
+        case "onTimeShipmentsReporting";  #onTimeShipmentsReporting();  break
+        case "addonCustomerSearch";       #addonCustomerSearch();       break
+        case "addonCustomerForm";         #addonCustomerForm();         break
       swend
     fi
     #servlet!.respond(#httpStatus!, #msg!, #alert!)
@@ -67,7 +76,8 @@ class public dynawebServlet
     DTServletOut.addData(action!)
   methodend
   
-  method private void ontimeShipments()
+  rem  Present form for date range & customer entry
+  method private void onTimeShipments()
       declare DTView             view!
       declare BBjTemplatedString rec!
       view! = new DTView("XX", "OTSR", "A")
@@ -77,29 +87,87 @@ class public dynawebServlet
       rec!.setFieldValue("datefrom", jul(year, mth, 1))
       rec!.setFieldValue("dateto",   jul(0,0,0))
       DTServletOut.addData(view!.getForm(rec!, null()))
-      DTServletOut.addButton(DTButton.cancel("Close", BBjAPI.TRUE))
+      DTServletOut.addButton(DTButton.cancel("Close"))
   methodend
   
-  method private void ontimeShipmentsProcess()
+  rem  Create report files based on operator entries
+  method private void onTimeShipmentsProcess()
     declare HashMap fields!
     fields! = #servlet!.getFirstFormFields()
     declare OntimeShipments report!
     dateFrom$ = fields!.get("datefrom").toString()
     dateTo$   = fields!.get("dateto").toString()
+    custno$   = fields!.get("custno").toString()
     call "CDS055", dateFrom$, dat$[all]; dateFrom = num(dat$[2])
     call "CDS055", dateTo$,   dat$[all]; dateTo   = num(dat$[2])
-    report! = new OntimeShipments(dateFrom, dateTo)
+    report! = new OntimeShipments(dateFrom, dateTo, custno$)
     #msg! = report!.getErrMsg()
-    if ! #msg!.isEmpty() methodret    
+    if #msg!.isEmpty() then
+      rem  Show form with reporting options
+      declare DTView reporting!
+      reporting! = new DTView("XX", "OTSR", "B")
+      reporting!.addButton(DTButton.cancel("Close"))
+      DTServletOut.addData(reporting!.getForm())
+    fi
+  methodend
+  
+  rem  Process On Time Shipments Report selection
+  method private void onTimeShipmentsReporting()
+    declare HashMap formFields!
+    formFields! = #servlet!.getFirstFormFields()
+    OntimeShipments.getReport(formFields!.get("report").toString(), formFields!.get("output").toString())
+  methodend
+  
+  rem  Select Addon Customer
+  method private void addonCustomerSearch()
+    declare BBjString searchPhrase!
     
-    declare DTJsonObject action!
-    action! = new DTJsonObject()
-    action!.put("type", "action")
-    fileout$ = report!.getFileout()
-    call "SW005", "CD", "SM", sm00$      
-    action!.put("url", cvs(sm00.httpname$, 2) + fileout$(pos("/tmp/" = fileout$)))
-    action!.put("newPage", BBjAPI.TRUE)
-    DTServletOut.addData(action!)
+    searchPhrase! = #servlet!.getParameter("value")
+    rowSelectApi$ = java.net.URLDecoder.decode(#servlet!.getParameter("rowselectapi"), "UTF-8")
+    fieldname$    = #servlet!.getParameter("fieldname")
+    #addonCustomerSearch(searchPhrase!, rowSelectApi$, fieldname$)
+  methodend
+
+  method private void addonCustomerSearch(BBjString searchPhrase!, BBjString rowSelectApi$, BBjString fieldname$)
+    declare DTPopup            popup!
+    declare DTGrid             customerGrid!
+    popup! = new DTPopup("Click row to select Customer")
+    popup!.setMaxWidth(400)
+    popup!.showClose(BBjAPI.TRUE)
+    popup!.deliver()
+    customerGrid! = new DTGrid("XX", "arm01","A")
+    #alert! = customerGrid!.getErrMsg()
+    if ! #alert!.isEmpty() then methodret
+    customerGrid!.setCloseOnRowSelect(BBjAPI.TRUE)
+    customerGrid!.setCondition("rec.firm_id$ = ""01"" and pos(""" + searchPhrase!.toLowerCase() + """ = cvs(rec.customer_id$ + "" "" + rec.customer_name$, 8))")
+    customerGrid!.setApiRowSelect(rowSelectApi$ + "?fieldname=" + fieldname$)
+    DTServletOut.addData(customerGrid!.getFirstPage())
+  methodend
+  
+  method private void addonCustomerForm()
+    #rowSelect(BBjAPI.FALSE)
+  methodend
+  
+  method private void addonCustomerGrid()
+    #rowSelect(BBjAPI.TRUE)
+  methodend
+  
+  method private void rowSelect(boolean inGrid!)
+REM     DTServletOut.closePopup(BBjAPI.FALSE)
+    hexkey$ = #servlet!.getParameter("hexkey")
+    if len(hexkey$) = 0 then
+      #msg! = "Hexkey is required"
+      methodret
+    fi
+    declare DTFormUpdate update!
+    update! = new DTFormUpdate(inGrid!)
+    custno$ = ath(hexkey$, err=*next)
+    call "SW001", "arm01", 0, custno$, arm01$, sw001$
+    if ! sw001.onfile then arm01.customer_name$ = "*** Not on File ***"
+    fieldname$ = #servlet!.getParameter("fieldname")
+    update!.addString(fieldname$, custno$(3), cvs(custno$(3), 3) + " " + cvs(arm01.customer_name$, 3))
+    update!.deliver(0)
+
   methodend
 
 classend
