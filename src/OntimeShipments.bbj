@@ -108,7 +108,7 @@ class public OntimeShipments
     if len(custno$) = 6 then store!.put("custno_name", custno$ + " " + arm01.customer_name$)
     store!.put("detailFile", detail$)
     store!.put("summaryFile", summary$)
-    store!.put("averageDays", round(totaldays / totallines, 1))
+    store!.put("averageDays", str(round(totaldays / totallines, 1)))
     declare DTSession session!
     session! = DTSession.getSession()
     session!.setUserProperty("OntimeShipment", store!.toString(), BBjAPI.TRUE)
