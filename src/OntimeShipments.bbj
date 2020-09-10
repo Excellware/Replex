@@ -108,7 +108,7 @@ class public OntimeShipments
     if len(custno$) = 6 then store!.put("custno_name", custno$ + " " + arm01.customer_name$)
     store!.put("detailFile", detail$)
     store!.put("summaryFile", summary$)
-    store!.put("averageDays", round(totaldays / totallines))
+    store!.put("averageDays", round(totaldays / totallines, 1))
     declare DTSession session!
     session! = DTSession.getSession()
     session!.setUserProperty("OntimeShipment", store!.toString(), BBjAPI.TRUE)
@@ -135,7 +135,7 @@ class public OntimeShipments
         break
       case "S"
         grid! = new DTGrid("RP", "OTSRS.", "A", store!.getString("summaryFile"))
-        grid!.setFooter("Average Days Late: " + str(store!.getNumber("averageDays"):"###.0"))
+        grid!.setFooter("Average Days Late: " + store!.getString("averageDays"))
         name$ = "Summary"
         break
     swend
@@ -174,7 +174,7 @@ class public OntimeShipments
     call "CDS041", "CDS038", S038$, "YP"
     s038.keepOpen$ = "Y"
     call "CDS038", y$, y5$, y5a$, y6$, y6, l, p, s038$, filename$, kno, keybegin$, keyend$, disp$
-    print (y6.ch)'lf', "Average Days Late: ", str(store!.getNumber("averageDays"):"###.0")
+    print (y6.ch)'lf', "Average Days Late: ", store!.getString("averageDays")
     call "CDS094", y6$, "e"
     
     call "SW005", "CD", "SM", sm00$      
