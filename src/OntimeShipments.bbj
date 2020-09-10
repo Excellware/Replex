@@ -62,6 +62,7 @@ class public OntimeShipments
         otsrd.value = opt11.ext_price
         totalvalue = totalvalue + otsrd.value
         totallines = totallines + 1
+        totaldays  = totaldays + max(0, otsrd.dayslate)
         writerecord (otsrd)otsrd$
         index = min(max(otsrd.dayslate, 0), 8)
         lineitems[index] = lineitems[index] + 1
@@ -107,6 +108,7 @@ class public OntimeShipments
     if len(custno$) = 6 then store!.put("custno_name", custno$ + " " + arm01.customer_name$)
     store!.put("detailFile", detail$)
     store!.put("summaryFile", summary$)
+    store!.put("averageDays", round(totaldays / totallines))
     declare DTSession session!
     session! = DTSession.getSession()
     session!.setUserProperty("OntimeShipment", store!.toString(), BBjAPI.TRUE)
@@ -133,6 +135,7 @@ class public OntimeShipments
         break
       case "S"
         grid! = new DTGrid("RP", "OTSRS.", "A", store!.getString("summaryFile"))
+        grid!.setFooter("Average Days Late: " + str(store!.getNumber("averageDays"):"###.0"))
         name$ = "Summary"
         break
     swend
