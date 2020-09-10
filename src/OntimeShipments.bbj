@@ -171,8 +171,12 @@ class public OntimeShipments
     y5a$ = subtitle$
     call "CDS584", y6$, y5$
     fileout$ = y6.fileout$(pos("/tmp/" = y6.fileout$))
+    call "CDS041", "CDS038", S038$, "YP"
+    s038.keepOpen$ = "Y"
     call "CDS038", y$, y5$, y5a$, y6$, y6, l, p, s038$, filename$, kno, keybegin$, keyend$, disp$
-
+    print (y6.ch)'lf', "Average Days Late: ", str(store!.getNumber("averageDays"):"###.0")
+    call "CDS094", y6$, "e"
+    
     call "SW005", "CD", "SM", sm00$      
     action! = new DTJsonObject()
     action!.put("type", "action")
