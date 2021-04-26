@@ -54,5 +54,16 @@ class public BankFile
     call "CDS081", "", -999
 
   methodend
+  
+  method public static void copyAchFileToClient(BBjString nachaFileName$)
+     declare BBjClientFileSystem fs!
+     declare BBjClientFile       clientFile!
+     fs! = BBjAPI().getThinClient().getClientFileSystem()
+     outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ach-bank-uploadfile.txt"
+     clientFile! = fs!.getClientFile(outfile$)
+     if clientFile!.exists() then clientFile!.delete()
+     clientFile!.createNewFile()
+     clientFile!.copyToClient(nachaFileName$)
+  methodend
 
 classend
