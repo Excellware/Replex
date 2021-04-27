@@ -32,7 +32,7 @@ class public BankFile
      if pos(" " <> nachaFileName$) = 0 then  
         close (#ap22)
         call "CDS041","CDS038",s038$,"YP"
-        s038.COLHEAD$ = "S"; rem "No col headings
+        s038.COLHEAD$ = "S"; rem "No col headings 
         s038.NOTIFY$ = "N"
         s038.KEEPOPEN$ = "e"
         call "CDS041","CDS084",s084$,"YP"
@@ -57,7 +57,7 @@ class public BankFile
      clientFile!.createNewFile()
      clientFile!.copyToClient(infile$)
     
-     call "CDS081", "", -999
+     if pos(" " <> nachaFileName$) = 0 then call "CDS081", "", -999
 
   methodend
   
