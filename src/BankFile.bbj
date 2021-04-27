@@ -28,42 +28,37 @@ class public BankFile
     writerecord (#ap22)ap22$
   methodend
 
-  method public void finish()
-    close (#ap22)
-    call "CDS041","CDS038",s038$,"YP"
-    s038.COLHEAD$ = "S"; rem "No col headings
-    s038.NOTIFY$ = "N"
-    s038.KEEPOPEN$ = "e"
-    call "CDS041","CDS084",s084$,"YP"
-    s084.NAME$="PFIL"
-    s084.MODE$="E"
-    s084.FILEOUT$ = ",xls"
-    call "CDS084",Y$,Y5$,U0,S084$,Y6,Y6$
-    call "CDS038",Y$,Y5$,Y5A$,Y6$,Y6,L,P,S038$,#filename$
-
-    declare BBjClientFileSystem fs!
-    declare BBjClientFile       clientFile!
-
-    fs! = BBjAPI().getThinClient().getClientFileSystem()
-    outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ReplexCheckRegister.txt"
-    clientFile! = fs!.getClientFile(outfile$)
-    if clientFile!.exists() then clientFile!.delete()
-    clientFile!.createNewFile()
-    clientFile!.copyToClient(s084.fileout$)
-    
-    call "CDS081", "", -999
-
-  methodend
-  
-  method public static void copyAchFileToClient(BBjString nachaFileName$)
+  method public void finish(BBjString nachaFileName$)
+     if pos(" " <> nachaFileName$) = 0 then  
+        close (#ap22)
+        call "CDS041","CDS038",s038$,"YP"
+        s038.COLHEAD$ = "S"; rem "No col headings
+        s038.NOTIFY$ = "N"
+        s038.KEEPOPEN$ = "e"
+        call "CDS041","CDS084",s084$,"YP"
+        s084.NAME$="PFIL"
+        s084.MODE$="E"
+        s084.FILEOUT$ = ",xls"
+        call "CDS084",Y$,Y5$,U0,S084$,Y6,Y6$
+        call "CDS038",Y$,Y5$,Y5A$,Y6$,Y6,L,P,S038$,#filename$
+        outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ReplexCheckRegister.txt"
+        infile$  = s084.fileout$
+     else
+        outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ach-bank-uploadfile.txt"
+        infile$  = nachaFileName$
+     fi
      declare BBjClientFileSystem fs!
      declare BBjClientFile       clientFile!
+
      fs! = BBjAPI().getThinClient().getClientFileSystem()
-     outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ach-bank-uploadfile.txt"
+    
      clientFile! = fs!.getClientFile(outfile$)
      if clientFile!.exists() then clientFile!.delete()
      clientFile!.createNewFile()
-     clientFile!.copyToClient(nachaFileName$)
-  methodend
+     clientFile!.copyToClient(infile$)
+    
+     call "CDS081", "", -999
 
+  methodend
+  
 classend
