@@ -29,9 +29,6 @@ class public BankFile
   methodend
 
   method public void finish(BBjString nachaFileName$)
-     dim outfile$[1:2]
-     dim infile$[1:2]
-     
      close (#ap22)
      call "CDS041","CDS038",s038$,"YP"
      s038.COLHEAD$ = "S"; rem "No col headings 
@@ -43,23 +40,26 @@ class public BankFile
      s084.FILEOUT$ = ",xls"
      call "CDS084",Y$,Y5$,U0,S084$,Y6,Y6$
      call "CDS038",Y$,Y5$,Y5A$,Y6$,Y6,L,P,S038$,#filename$
-     outfile$[1] = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ReplexCheckRegister.txt"
-     infile$[1]  = s084.fileout$
-     if pos(" " <> nachaFileNme$) then 
-        outfile$[2] = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ach-bank-uploadfile.txt"
-        infile$[2]  = nachaFileName$
-     fi
+     
      declare BBjClientFileSystem fs!
      declare BBjClientFile       clientFile!
 
      fs! = BBjAPI().getThinClient().getClientFileSystem()
-     for procfile = 1 to 1 + sgn(pos(" " <> nachaFileName$))
-        clientFile! = fs!.getClientFile(outfile$[procfile])
+     outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ReplexCheckRegister.txt"
+     clientFile! = fs!.getClientFile(outfile$)
+     if clientFile!.exists() then clientFile!.delete()
+     clientFile!.createNewFile()
+     clientFile!.copyToClient(s084.fileout$)
+     
+     if pos(" " <> nachaFileName$) then
+        outfile$ = clientenv("HOMEDRIVE") + clientenv("HOMEPATH") + "\Downloads\ach-bank-uploadfile.txt"
+        clientFile! = fs!.getClientFile(outfile$)
         if clientFile!.exists() then clientFile!.delete()
         clientFile!.createNewFile()
-        clientFile!.copyToClient(infile$[procfile])
-     next procfile
-     if pos(" " <> nachaFileName$) = 0 then call "CDS081", "", -999
+        clientFile!.copyToClient(nachaFileName$)
+     fi
+     
+     call "CDS081", "", -999
 
   methodend
   
